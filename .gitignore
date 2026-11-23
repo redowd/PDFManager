@@ -1,0 +1,34 @@
+# ===== Node / 前端 =====
+node_modules/
+frontend/build/
+
+# ===== Rust =====
+rust-backend/target/
+/PDFManager.exe
+/PDFManager.exe.WebView2/
+
+# ===== 运行数据与产物（仅本地保存，不入仓库）=====
+# SQLite 数据库及备份
+backend/data/
+# OCR 结果：Markdown 与原始 JSON（output/md、output/json）
+backend/output/
+# PDF 分割临时文件、MinerU 解压临时目录
+backend/temp/
+# 上传的 PDF 原件
+backend/uploads/
+# 环境变量（含 MinerU Token 等密钥）
+backend/.env
+
+# ===== 调试与审计产物 =====
+# 界面视觉审计截图与度量数据
+ui-audit/
+
+# ===== 日志与系统文件 =====
+*.log
+*.lnk
+.DS_Store
+Thumbs.db
+
+# ===== IDE =====
+.vscode/
+.idea/

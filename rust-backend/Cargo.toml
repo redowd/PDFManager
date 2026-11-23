@@ -1,0 +1,38 @@
+[package]
+name = "pdf-manager"
+version = "1.0.0"
+edition = "2021"
+description = "PDF manager backend rewritten in Rust (serves the built React frontend)"
+
+[dependencies]
+axum = { version = "0.8", features = ["multipart", "macros"] }
+tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.7", features = ["io"] }
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rusqlite = { version = "0.32", features = ["bundled"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
+md-5 = "0.10"
+uuid = { version = "1", features = ["v4"] }
+chrono = "0.4"
+zip = { version = "2", default-features = false, features = ["deflate"] }
+flate2 = "1"
+rust-embed = { version = "8", features = ["mime-guess"] }
+mime_guess = "2"
+open = "5"
+lopdf = "0.34"
+anyhow = "1"
+tantivy = "0.22"
+jieba-rs = "0.7"
+sha2 = "0.10"
+tao = "0.35.3"
+wry = "0.55.1"
+pulldown-cmark = { version = "0.12", default-features = false, features = ["html"] }
+zhconv = "0.4.2"
+regex = "1"
+
+[profile.release]
+opt-level = 2
+lto = "thin"
+strip = true
