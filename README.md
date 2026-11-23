@@ -136,13 +136,23 @@ powershell -ExecutionPolicy Bypass -File .\build.ps1
 
 工作流：[.github/workflows/build-exe.yml](.github/workflows/build-exe.yml)
 
-- 触发：推送到 `main` / `master`、任意 Pull Request、手动 `workflow_dispatch`、以及 `v*` 标签推送；
+- 触发：**只推送 `v*` 标签时构建**（分支推送、Pull Request 都不会触发）；
+- 版本号：遵循 SemVer 2.0.0，标签必须是 `vMAJOR.MINOR.PATCH`（可带 `-rc.1` 之类的预发布后缀），且必须与 `rust-backend/Cargo.toml` 的 `version` 完全一致，否则构建直接失败；
+- 发布步骤：
+  ```powershell
+  # 1. 修改 rust-backend/Cargo.toml 的 version（例如 1.1.0）
+  # 2. 提交后打标签并推送
+  git tag v1.1.0
+  git push origin v1.1.0
+  ```
 - Runner：`windows-latest`；
 - 缓存：npm（`frontend/package-lock.json`）与 Rust `rust-backend/target`；
-- 图标：显式检查 Windows SDK 的 `rc.exe`，找不到直接失败（runner 自带 SDK，`build.rs` 会自动选最高版本）；
+- 资源：显式检查 Windows SDK 的 `rc.exe`，找不到直接失败；`build.rs` 会把 `app.ico` 和版本信息（文件属性里的 FileVersion / ProductVersion，取自 Cargo 版本）一起编进 exe；
 - 前端：`npm ci` + `npm run build`（设置 `CI=false`，避免 CRA 把 warning 当错误）；
 - 后端：`cargo build --release --locked`；
-- 构件：`PDFManager-windows-x64`，内含 `PDFManager.exe` 与 `PDFManager.exe.sha256`；推送 `v*` 标签时自动作为 Release 附件上传。
+- 下载产物：
+  - Release 页面：`PDFManager-v<版本>-windows-x64` 对应的 `PDFManager.exe` 与 `PDFManager.exe.sha256`；
+  - 或 Actions 运行页的 Artifacts：`PDFManager-v<版本>-windows-x64`（同一份 exe 与校验文件）。
 
 构建不读取 `.env`、数据库或 MinerU Token：`frontend/build` 与 `rust-backend/target` 都在仓库外缓存，CI 全部从源码生成；工作流不会向仓库推送任何内容。
 

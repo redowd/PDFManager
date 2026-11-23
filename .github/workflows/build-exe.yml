@@ -2,10 +2,7 @@ name: Build Windows exe
 
 on:
   push:
-    branches: [main, master]
     tags: ['v*']
-  pull_request:
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -22,6 +19,24 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve and validate version
+        run: |
+          $tag = "${{ github.ref_name }}"
+          if ($tag -notmatch '^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-[0-9A-Za-z]+(\.[0-9A-Za-z]+)*)?(\+[0-9A-Za-z]+(\.[0-9A-Za-z]+)*)?$') {
+            throw "标签 $tag 不是合法 SemVer（示例：v1.0.0、v1.1.0-rc.1）"
+          }
+          $version = $tag.Substring(1)
+          $line = Select-String -Path rust-backend/Cargo.toml -Pattern '^version\s*=\s*"([^"]+)"' | Select-Object -First 1
+          if (-not $line) { throw '无法从 rust-backend/Cargo.toml 读取 version' }
+          $cargoVersion = $line.Matches[0].Groups[1].Value
+          if ($cargoVersion -ne $version) {
+            throw "标签 $tag 与 rust-backend/Cargo.toml 的版本 $cargoVersion 不一致，请先更新版本号再打标签"
+          }
+          "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "version=$version"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -38,11 +53,11 @@ jobs:
         with:
           workspaces: rust-backend
 
-      - name: Verify Windows SDK rc.exe for exe icon
+      - name: Verify Windows SDK rc.exe for exe icon and version info
         run: |
           $rc = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\rc.exe" -ErrorAction SilentlyContinue |
                 Sort-Object FullName -Descending | Select-Object -First 1
-          if (-not $rc) { throw 'Windows SDK rc.exe not found; exe icon cannot be linked' }
+          if (-not $rc) { throw 'Windows SDK rc.exe not found; exe icon and version resource cannot be linked' }
           Write-Host "using $($rc.FullName)"
 
       - name: Install frontend dependencies
@@ -70,16 +85,18 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: PDFManager-windows-x64
+          name: PDFManager-v${{ env.VERSION }}-windows-x64
           path: |
             dist/PDFManager.exe
             dist/PDFManager.exe.sha256
           if-no-files-found: error
 
-      - name: Attach to release on tag
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          name: PDF Manager v${{ env.VERSION }}
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
           files: |
             dist/PDFManager.exe
             dist/PDFManager.exe.sha256
